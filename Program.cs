@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Specialized;
 using System.IO;
 using System.Linq;
 using System.Configuration;
@@ -8,71 +9,118 @@ using System.Text;
 
 namespace LatestFileReporter
 {
-	static class Program
+	sealed class Program
 	{
-		static void Main(string[] args)
+
+		private bool _showHelp;
+        private string _destinationsDirectoryPath;
+        private string _sourceDirectoryPath;
+		private string _searchPattern;
+		private string _logFileExtension;
+		private string _batchFileDirectoryPath;
+		private string _fromEmailAddress;
+		private string[] _toEmailAddresses;
+		private SmtpClient _smtpClient;
+        private bool _runBatch;
+		private int _attempts;
+
+		private Program()
 		{
-			var path = args.Any() ? args[0] : ConfigurationManager.AppSettings["path"];
-			var files = GetUnprocessedCubeFiles(path);
-			var message = PrepareEmailMessage();
-			if (!files.Any())
-				ReportSuccess(message);
-			else
-				ReportFailure(files, message);
+			var appSettings = ConfigurationManager.AppSettings;
+			_showHelp = false;
+			_runBatch = false; // <-- todo: set this to true and add logic
+			_attempts = 3;
+
+			_searchPattern = appSettings["searchPattern"];
+			_logFileExtension = appSettings["logFileExtension"];
+			_destinationsDirectoryPath = appSettings["destinationDirectory"];
+			_sourceDirectoryPath = appSettings["sourceDirectory"];
+			_batchFileDirectoryPath = appSettings["batchDirectory"];
+			_fromEmailAddress = appSettings["fromEmailAddress"];
+			_toEmailAddresses = appSettings["toEmailAddresses"].Split(';');
+			_smtpClient = CreateSmtpClient(appSettings);
+		}
+
+		private void ParseArgs(string[] args)
+		{
+			if (args.Length == 0)
+				return;
+
+			_destinationsDirectoryPath = args[0];
+
+			// do more complex processing here!
+
+		}
+
+		private int Run(string[] args)
+		{
+
+			_showHelp = false;
+			var result = 0;
 
 			try
 			{
-				var smtp = CreateSmtpClient();
-				smtp.Send(message);
+				ParseArgs(args);
+
+				var expectedDate = DateTime.Now.Date;
+				var directory = new DirectoryInfo(_sourceDirectoryPath);
+				var message = new MailMessage(string.Join(";", _toEmailAddresses), _fromEmailAddress);
+				for(var index = 0; index < _attempts; index++)
+				{
+					var files = (from file in directory.GetFileSystemInfos(_searchPattern)
+						orderby file.LastWriteTime descending
+						where file.LastWriteTime < expectedDate
+						select file).ToArray();
+
+					if (!files.Any())
+					{
+						Console.WriteLine("All files are up to date!");
+						message.Subject = "Keep sleeping... All is Good.";
+						message.Body = "All files are up to date!";
+						break;
+					}
+
+					ReportFailure(files, message);
+
+					if (!_runBatch)
+						break;
+				}
+
+				_smtpClient.Send(message);
+
 			}
-			catch (Exception error)
+			catch(Exception oops)
 			{
-				Console.WriteLine(error.Message);
+				Console.WriteLine(oops.StackTrace);
+				result = -1;
 			}
+
+			return result;
+
 		}
 
-		private static void ReportFailure(FileSystemInfo[] files, MailMessage message)
+		static int Main(string[] args)
 		{
-			Console.WriteLine("There were " + files.Count() + " files modified today: ");
-			foreach (var file in files)
-				Console.WriteLine("\t" + file);
+			var program = new Program();
+			return program.Run(args);
+		}
 
+		private void ReportFailure(FileSystemInfo[] files, MailMessage message)
+		{
+			var friendlyMessage = string.Format("There are {0} files that were not copied: ", files.Count());
 			var body = new StringBuilder();
-			body.Append(string.Format("There are {0} files that are out of date!", files.Count()));
+			Console.WriteLine(friendlyMessage);
+			body.Append(friendlyMessage);
 			foreach (var file in files)
+			{
+				Console.WriteLine("\t" + file);
 				body.Append("\t" + file.Name);
+			}
 			message.Subject = "Wake Up!";
 			message.Body = body.ToString();
 		}
 
-		private static void ReportSuccess(MailMessage message)
-		{
-			Console.WriteLine("No files modified");
-			message.Subject = "All is Good!";
-			message.Body = "Keep sleeping...";
-		}
-
-		private static MailMessage PrepareEmailMessage()
-		{
-			var emails = ConfigurationManager.AppSettings["emails"];
-			var from = ConfigurationManager.AppSettings["from"];
-			var message = new MailMessage(@from, emails);
-			return message;
-		}
-
-		private static FileSystemInfo[] GetUnprocessedCubeFiles(string path)
-		{
-			var pattern = ConfigurationManager.AppSettings["pattern"];
-			var expectedDate = DateTime.Now.Date;
-			var directory = new DirectoryInfo(path);
-			var files = (from file in directory.GetFileSystemInfos(pattern)
-				orderby file.LastWriteTime descending
-				where file.LastWriteTime < expectedDate
-				select file).ToArray();
-			return files;
-		}
-
-		private static SmtpClient CreateSmtpClient()
+		private SmtpClient CreateSmtpClient(NameValueCollection appSettings)
 		{
 			var smtpUserName = Environment.GetEnvironmentVariable("SmtpUserName", EnvironmentVariableTarget.User);
 			if (string.IsNullOrEmpty(smtpUserName))
@@ -82,16 +130,20 @@ namespace LatestFileReporter
 			if (string.IsNullOrEmpty(smtpPassword))
 				throw new ApplicationException("Expecting a User environment variable named 'SmtpPassword'");
 
-			var smtp = new SmtpClient
+			SmtpDeliveryMethod deliveryMethod;
+			if (!Enum.TryParse(appSettings["smtpDeliveryMethod"] ?? string.Empty, true, out deliveryMethod))
+				deliveryMethod = SmtpDeliveryMethod.Network;
+
+			return new SmtpClient
 			{
-				Port = 587,
-				Host = "smtp.gmail.com",
-				EnableSsl = true,
-				UseDefaultCredentials = false,
+				Port = Convert.ToInt32(appSettings["smtpPort"]),
+				Host = appSettings["smtpHost"],
+				EnableSsl = Convert.ToBoolean(appSettings["smtpEnableSsl"]),
+				UseDefaultCredentials = Convert.ToBoolean(appSettings["smtpUseDefaultCreds"]),
 				Credentials = new NetworkCredential(smtpUserName, smtpPassword),
-				DeliveryMethod = SmtpDeliveryMethod.Network
+				DeliveryMethod = deliveryMethod
 			};
-			return smtp;
 		}
+
 	}
 }
