@@ -60,6 +60,9 @@
     <SignManifests>true</SignManifests>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Moq">
+      <HintPath>packages\Moq.4.2.1402.2112\lib\net40\Moq.dll</HintPath>
+    </Reference>
     <Reference Include="nunit.framework">
       <HintPath>packages\NUnit.2.6.3\lib\nunit.framework.dll</HintPath>
     </Reference>
@@ -74,7 +77,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AppFileSystem.cs" />
+    <Compile Include="Application.cs" />
     <Compile Include="BatchFileRunner.cs" />
+    <Compile Include="IApplication.cs" />
     <Compile Include="IBatchRunner.cs" />
     <Compile Include="IFileSystem.cs" />
     <Compile Include="IMessageFactory.cs" />

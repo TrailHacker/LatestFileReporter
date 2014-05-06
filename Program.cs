@@ -7,39 +7,34 @@ namespace LatestFileReporter
 	sealed class Program
 	{
 
-		private bool _showHelp;
-		public IFileSystem Definition { get; set; }
-		public IBatchRunner BatchRunner { get; set; }
-		public IMessageFactory MessageFactory { get; set; }
-		public IMailer Mailer { get; set; }
-
-		public Program()
-		{
-			_showHelp = false;
-			Definition = new AppFileSystem();
-			Mailer = new Mailer();
-			BatchRunner = new BatchFileRunner();
-			MessageFactory = new MessageFactory();
-		}
-
 		public int Run()
 		{
 
-			_showHelp = false;
-			var result = 0;
+			int result;
+			var app = new Application(Console.Out);
 
 			try
 			{
-				var expectedDate = DateTime.Now.Date;
-				var directory = new DirectoryInfo(Definition.SourceDirectoryPath);
+				var files = app.GetOutdatedFiles();
 
-				var files = (from file in directory.GetFileSystemInfos(Definition.SearchPattern)
-					orderby file.LastWriteTime descending
-					where file.LastWriteTime < expectedDate
-					select file).ToArray();
+				var attempt = 0;
+				var stop = false;
+				while (files.Any() || stop)
+				{
+					foreach (var file in files)
+					{
+						if (!app.CopySourceFile(file.Name))
+							app.RunBatchFile(file.Name);
+					}
 
-				var message = MessageFactory.Create(files);
-				Mailer.Send(message);
+					attempt++;
+					files = app.GetOutdatedFiles();
+					stop = !app.KeepGoing(attempt);
+
+				}
+
+				app.SendMessage(files);
+				result = files.Count();
 
 			}
 			catch(Exception oops)
@@ -52,22 +47,10 @@ namespace LatestFileReporter
 
 		}
 
-		static int Main(string[] args)
+		static int Main()
 		{
 			var program = new Program();
-			ParseArgs(program, args);
 			return program.Run();
-		}
-
-		private static void ParseArgs(Program program, string[] args)
-		{
-			if (args.Length == 0)
-				return;
-
-			program.Definition.DestinationsDirectoryPath = args[0];
-
-			// do more complex processing here!
-
 		}
 
 	}
