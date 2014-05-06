@@ -60,6 +60,12 @@
     <SignManifests>true</SignManifests>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Moq">
+      <HintPath>packages\Moq.4.2.1402.2112\lib\net40\Moq.dll</HintPath>
+    </Reference>
+    <Reference Include="nunit.framework">
+      <HintPath>packages\NUnit.2.6.3\lib\nunit.framework.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
@@ -70,14 +76,28 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AppFileSystem.cs" />
+    <Compile Include="Application.cs" />
+    <Compile Include="BatchFileRunner.cs" />
+    <Compile Include="FileWrapper.cs" />
+    <Compile Include="IApplication.cs" />
+    <Compile Include="IBatchRunner.cs" />
+    <Compile Include="IFileInfo.cs" />
+    <Compile Include="IFileSystem.cs" />
+    <Compile Include="IMessageFactory.cs" />
+    <Compile Include="IMailer.cs" />
+    <Compile Include="MessageFactory.cs" />
     <Compile Include="Program.cs" />
+    <Compile Include="ProgramTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Mailer.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config">
       <SubType>Designer</SubType>
     </None>
     <None Include="LatestFileReporter_TemporaryKey.pfx" />
+    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include=".NETFramework,Version=v4.5">
