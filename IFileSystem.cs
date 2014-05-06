@@ -4,7 +4,7 @@ namespace LatestFileReporter
 	{
 		string DestinationsDirectoryPath { get; set; }
 		string SourceDirectoryPath { get; set; }
-		string SearchPattern { get; set; }
+		string SearchFileExtension { get; set; }
 		string LogFileDirectoryPath { get; set; }
 		string LogFileExtension { get; set; }
 	}

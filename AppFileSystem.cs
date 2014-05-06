@@ -7,7 +7,7 @@ namespace LatestFileReporter
 		public AppFileSystem()
 		{
 			var appSettings = ConfigurationManager.AppSettings;
-			SearchPattern = appSettings["searchPattern"];
+			SearchFileExtension = appSettings["searchFileExtension"];
 			LogFileExtension = appSettings["logFileExtension"];
 			DestinationsDirectoryPath = appSettings["destinationDirectory"];
 			SourceDirectoryPath = appSettings["sourceDirectory"];
@@ -15,7 +15,7 @@ namespace LatestFileReporter
 		}
 		public string DestinationsDirectoryPath { get; set; }
 		public string SourceDirectoryPath { get; set; }
-		public string SearchPattern { get; set; }
+		public string SearchFileExtension { get; set; }
 		public string LogFileDirectoryPath { get; set; }
 		public string LogFileExtension { get; set; }
 	}

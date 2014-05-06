@@ -19,7 +19,7 @@ namespace LatestFileReporter
 			ToEmailAddresses = appSettings["toEmailAddresses"].Split(';');
 		}
 
-		public MailMessage Create(FileSystemInfo[] outdatedFiles)
+		public MailMessage Create(IFileInfo[] outdatedFiles)
 		{
 			var message = new MailMessage(string.Join(";", ToEmailAddresses), FromEmailAddress);
 			if (outdatedFiles.Any())

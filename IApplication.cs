@@ -4,11 +4,11 @@ namespace LatestFileReporter
 {
 	public interface IApplication
 	{
-		FileSystemInfo[] GetOutdatedFiles();
+		IFileInfo[] GetOutdatedFiles();
 		bool CopySourceFile(string fileName);
 		bool RunBatchFile(string fileName);
 		bool KeepGoing(int runCount);
-		void SendMessage(FileSystemInfo[] files);
+		void SendMessage(IFileInfo[] files);
 
 	}
 }

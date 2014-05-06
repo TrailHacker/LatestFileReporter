@@ -6,20 +6,25 @@ namespace LatestFileReporter
 {
 	sealed class Program
 	{
+		static int Main()
+		{
+			var app = new Application(Console.Out);
+			var program = new Program();
+			return program.Run(app);
+		}
 
-		public int Run()
+		public int Run(IApplication app)
 		{
 
 			int result;
-			var app = new Application(Console.Out);
 
 			try
 			{
 				var files = app.GetOutdatedFiles();
 
 				var attempt = 0;
-				var stop = false;
-				while (files.Any() || stop)
+				var keepGoing = true;
+				while (files.Any() && keepGoing)
 				{
 					foreach (var file in files)
 					{
@@ -29,7 +34,7 @@ namespace LatestFileReporter
 
 					attempt++;
 					files = app.GetOutdatedFiles();
-					stop = !app.KeepGoing(attempt);
+					keepGoing = app.KeepGoing(attempt);
 
 				}
 
@@ -45,12 +50,6 @@ namespace LatestFileReporter
 
 			return result;
 
-		}
-
-		static int Main()
-		{
-			var program = new Program();
-			return program.Run();
 		}
 
 	}

@@ -7,6 +7,6 @@ namespace LatestFileReporter
 	{
 		string FromEmailAddress { get; set; }
 		string[] ToEmailAddresses { get; set; }
-		MailMessage Create(FileSystemInfo[] outdatedFiles);
+		MailMessage Create(IFileInfo[] outdatedFiles);
 	}
 }

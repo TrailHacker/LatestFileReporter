@@ -79,8 +79,10 @@
     <Compile Include="AppFileSystem.cs" />
     <Compile Include="Application.cs" />
     <Compile Include="BatchFileRunner.cs" />
+    <Compile Include="FileWrapper.cs" />
     <Compile Include="IApplication.cs" />
     <Compile Include="IBatchRunner.cs" />
+    <Compile Include="IFileInfo.cs" />
     <Compile Include="IFileSystem.cs" />
     <Compile Include="IMessageFactory.cs" />
     <Compile Include="IMailer.cs" />
