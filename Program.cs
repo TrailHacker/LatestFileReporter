@@ -1,11 +1,6 @@
 ﻿using System;
-using System.Collections.Specialized;
 using System.IO;
 using System.Linq;
-using System.Configuration;
-using System.Net;
-using System.Net.Mail;
-using System.Text;
 
 namespace LatestFileReporter
 {
@@ -13,46 +8,21 @@ namespace LatestFileReporter
 	{
 
 		private bool _showHelp;
-        private string _destinationsDirectoryPath;
-        private string _sourceDirectoryPath;
-		private string _searchPattern;
-		private string _logFileExtension;
-		private string _batchFileDirectoryPath;
-		private string _fromEmailAddress;
-		private string[] _toEmailAddresses;
-		private SmtpClient _smtpClient;
-        private bool _runBatch;
-		private int _attempts;
+		public IFileSystem Definition { get; set; }
+		public IBatchRunner BatchRunner { get; set; }
+		public IMessageFactory MessageFactory { get; set; }
+		public IMailer Mailer { get; set; }
 
-		private Program()
+		public Program()
 		{
-			var appSettings = ConfigurationManager.AppSettings;
 			_showHelp = false;
-			_runBatch = false; // <-- todo: set this to true and add logic
-			_attempts = 3;
-
-			_searchPattern = appSettings["searchPattern"];
-			_logFileExtension = appSettings["logFileExtension"];
-			_destinationsDirectoryPath = appSettings["destinationDirectory"];
-			_sourceDirectoryPath = appSettings["sourceDirectory"];
-			_batchFileDirectoryPath = appSettings["batchDirectory"];
-			_fromEmailAddress = appSettings["fromEmailAddress"];
-			_toEmailAddresses = appSettings["toEmailAddresses"].Split(';');
-			_smtpClient = CreateSmtpClient(appSettings);
+			Definition = new AppFileSystem();
+			Mailer = new Mailer();
+			BatchRunner = new BatchFileRunner();
+			MessageFactory = new MessageFactory();
 		}
 
-		private void ParseArgs(string[] args)
-		{
-			if (args.Length == 0)
-				return;
-
-			_destinationsDirectoryPath = args[0];
-
-			// do more complex processing here!
-
-		}
-
-		private int Run(string[] args)
+		public int Run()
 		{
 
 			_showHelp = false;
@@ -60,33 +30,16 @@ namespace LatestFileReporter
 
 			try
 			{
-				ParseArgs(args);
-
 				var expectedDate = DateTime.Now.Date;
-				var directory = new DirectoryInfo(_sourceDirectoryPath);
-				var message = new MailMessage(string.Join(";", _toEmailAddresses), _fromEmailAddress);
-				for(var index = 0; index < _attempts; index++)
-				{
-					var files = (from file in directory.GetFileSystemInfos(_searchPattern)
-						orderby file.LastWriteTime descending
-						where file.LastWriteTime < expectedDate
-						select file).ToArray();
+				var directory = new DirectoryInfo(Definition.SourceDirectoryPath);
 
-					if (!files.Any())
-					{
-						Console.WriteLine("All files are up to date!");
-						message.Subject = "Keep sleeping... All is Good.";
-						message.Body = "All files are up to date!";
-						break;
-					}
+				var files = (from file in directory.GetFileSystemInfos(Definition.SearchPattern)
+					orderby file.LastWriteTime descending
+					where file.LastWriteTime < expectedDate
+					select file).ToArray();
 
-					ReportFailure(files, message);
-
-					if (!_runBatch)
-						break;
-				}
-
-				_smtpClient.Send(message);
+				var message = MessageFactory.Create(files);
+				Mailer.Send(message);
 
 			}
 			catch(Exception oops)
@@ -102,47 +55,19 @@ namespace LatestFileReporter
 		static int Main(string[] args)
 		{
 			var program = new Program();
-			return program.Run(args);
+			ParseArgs(program, args);
+			return program.Run();
 		}
 
-		private void ReportFailure(FileSystemInfo[] files, MailMessage message)
+		private static void ParseArgs(Program program, string[] args)
 		{
-			var friendlyMessage = string.Format("There are {0} files that were not copied: ", files.Count());
-			var body = new StringBuilder();
-			Console.WriteLine(friendlyMessage);
-			body.Append(friendlyMessage);
-			foreach (var file in files)
-			{
-				Console.WriteLine("\t" + file);
-				body.Append("\t" + file.Name);
-			}
-			message.Subject = "Wake Up!";
-			message.Body = body.ToString();
-		}
+			if (args.Length == 0)
+				return;
 
-		private SmtpClient CreateSmtpClient(NameValueCollection appSettings)
-		{
-			var smtpUserName = Environment.GetEnvironmentVariable("SmtpUserName", EnvironmentVariableTarget.User);
-			if (string.IsNullOrEmpty(smtpUserName))
-				throw new ApplicationException("Expecting a User environment variable named 'SmtpUserName'");
+			program.Definition.DestinationsDirectoryPath = args[0];
 
-			var smtpPassword = Environment.GetEnvironmentVariable("SmtpPassword", EnvironmentVariableTarget.User);
-			if (string.IsNullOrEmpty(smtpPassword))
-				throw new ApplicationException("Expecting a User environment variable named 'SmtpPassword'");
+			// do more complex processing here!
 
-			SmtpDeliveryMethod deliveryMethod;
-			if (!Enum.TryParse(appSettings["smtpDeliveryMethod"] ?? string.Empty, true, out deliveryMethod))
-				deliveryMethod = SmtpDeliveryMethod.Network;
-
-			return new SmtpClient
-			{
-				Port = Convert.ToInt32(appSettings["smtpPort"]),
-				Host = appSettings["smtpHost"],
-				EnableSsl = Convert.ToBoolean(appSettings["smtpEnableSsl"]),
-				UseDefaultCredentials = Convert.ToBoolean(appSettings["smtpUseDefaultCreds"]),
-				Credentials = new NetworkCredential(smtpUserName, smtpPassword),
-				DeliveryMethod = deliveryMethod
-			};
 		}
 
 	}
