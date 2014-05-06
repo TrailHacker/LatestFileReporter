@@ -1,6 +1,4 @@
-﻿using System.IO;
-
-namespace LatestFileReporter
+﻿namespace LatestFileReporter
 {
 	public interface IApplication
 	{
