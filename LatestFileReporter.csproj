@@ -80,15 +80,15 @@
     <Compile Include="Application.cs" />
     <Compile Include="BatchFileRunner.cs" />
     <Compile Include="FileWrapper.cs" />
-    <Compile Include="IApplication.cs" />
-    <Compile Include="IBatchRunner.cs" />
-    <Compile Include="IFileInfo.cs" />
-    <Compile Include="IFileSystem.cs" />
-    <Compile Include="IMessageFactory.cs" />
-    <Compile Include="IMailer.cs" />
+    <Compile Include="Interfaces\IApplication.cs" />
+    <Compile Include="Interfaces\IBatchRunner.cs" />
+    <Compile Include="Interfaces\IFileInfo.cs" />
+    <Compile Include="Interfaces\IFileSystem.cs" />
+    <Compile Include="Interfaces\IMessageFactory.cs" />
+    <Compile Include="Interfaces\IMailer.cs" />
     <Compile Include="MessageFactory.cs" />
     <Compile Include="Program.cs" />
-    <Compile Include="ProgramTests.cs" />
+    <Compile Include="Tests\ProgramTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Mailer.cs" />
   </ItemGroup>

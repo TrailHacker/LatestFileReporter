@@ -3,6 +3,7 @@ using System.Collections.Specialized;
 using System.Configuration;
 using System.Net;
 using System.Net.Mail;
+using LatestFileReporter.Interfaces;
 
 namespace LatestFileReporter
 {

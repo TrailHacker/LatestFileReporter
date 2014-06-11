@@ -1,4 +1,5 @@
 ﻿using System.Configuration;
+using LatestFileReporter.Interfaces;
 
 namespace LatestFileReporter
 {

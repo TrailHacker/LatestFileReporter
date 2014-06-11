@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using LatestFileReporter.Interfaces;
 
 namespace LatestFileReporter
 {
@@ -105,6 +106,10 @@ namespace LatestFileReporter
 			Mailer.Send(message);
 		}
 
+		public void ReportError(string message)
+		{
+			WriteLine(message);
+		}
 
 		private void WriteLine(string format, params object[] args)
 		{

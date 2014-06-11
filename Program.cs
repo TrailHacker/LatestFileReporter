@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using LatestFileReporter.Interfaces;
 
 namespace LatestFileReporter
 {
@@ -9,7 +10,9 @@ namespace LatestFileReporter
 		{
 			var app = new Application(Console.Out);
 			var program = new Program();
+			BatchFileRunner.ExecuteCommand("echo testing");
 			return program.Run(app);
+
 		}
 
 		public int Run(IApplication app)
@@ -43,7 +46,7 @@ namespace LatestFileReporter
 			}
 			catch(Exception oops)
 			{
-				Console.WriteLine(oops.StackTrace);
+				app.ReportError(oops.StackTrace);
 				result = -1;
 			}
 

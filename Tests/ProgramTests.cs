@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using LatestFileReporter.Interfaces;
 using Moq;
 using NUnit.Framework;
 
@@ -27,7 +28,7 @@ namespace LatestFileReporter
 			var app = new Mock<IApplication>();
 			var files = new[]
 			{
-				CreateFile("test.cub", DateTime.Now.AddDays(-1).Date),
+				CreateFile("test.cub", DateTime.Now.AddDays(-1).Date)
 			};
 			app.Setup(a => a.GetOutdatedFiles()).Returns(files);
 			app.Setup(a => a.CopySourceFile(It.Is<string>(s => s == "test.cub"))).Returns(false);
