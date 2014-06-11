@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace LatestFileReporter
+namespace LatestFileReporter.Interfaces
 {
 	public interface IFileInfo
 	{

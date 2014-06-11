@@ -1,6 +1,6 @@
 using System.Net.Mail;
 
-namespace LatestFileReporter
+namespace LatestFileReporter.Interfaces
 {
 	public interface IMailer
 	{

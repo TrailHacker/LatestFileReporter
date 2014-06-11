@@ -1,4 +1,4 @@
-﻿namespace LatestFileReporter
+﻿namespace LatestFileReporter.Interfaces
 {
 	public interface IApplication
 	{
@@ -7,6 +7,7 @@
 		bool RunBatchFile(string fileName);
 		bool KeepGoing(int runCount);
 		void SendMessage(IFileInfo[] files);
+		void ReportError(string message);
 
 	}
 }
