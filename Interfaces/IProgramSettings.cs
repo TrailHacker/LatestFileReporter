@@ -10,7 +10,7 @@ namespace LatestFileReporter.Interfaces
 		string SearchFileExtension { get; }
 		string LogFileDirectoryPath { get; }
 		string LogFileExtension { get; }
-		int MaxFailCountBeforeFailing { get; }
+		int MaxCountOfOutdatedFilesBeforeFailing { get; }
 		int AttemptedRunCounter { get; }
 	}
 }

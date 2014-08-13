@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using LatestFileReporter.Interfaces;
 using Moq;
@@ -26,66 +28,112 @@ namespace LatestFileReporter.Tests
 				Factory.CreateFile("bad2.cub", DateTime.Now.AddDays(-1).Date),
 				Factory.CreateFile("good.cub", DateTime.Now.Date)
 			};
-			var count = files.Where(Program.HasProcessedToday).Count();
+
+			var count = files.Count(f => !Program.HasProcessedToday(f));
 			Assert.AreEqual(2, count);
 		}
 
 		[Test]
 		public void unprocessed_file_triggers_batch_file()
 		{
-			var files = new[]
-			{
-				Factory.CreateFile("test.cub", DateTime.Now.AddDays(-1).Date)
-			};
+			Mock<IProgramDefinition> mock;
+			var settings = Factory.CreateSettings();
+			var files = new[] { Factory.CreateFile("test.cub", DateTime.Now.AddDays(-1).Date) };
+			var definition = Factory.CreateDefinition(files, out mock, s => s == "test.cub", s => false);
 
-			var settingsMock = new Mock<IProgramSettings>();
-			settingsMock.Setup(d => d.MaxFailCountBeforeFailing).Returns(3);
-			settingsMock.Setup(d => d.AttemptedRunCounter).Returns(1);
-
-			var definitionMock = new Mock<IProgramDefinition>();
-			definitionMock.Setup(a => a.GetFilesAsQueryable()).Returns(files.AsQueryable());
-			definitionMock.Setup(a => a.DoesLogFileIndicateCommonError(It.Is<string>(s => s == "test.cub"))).Returns(true); // only executes when function returns true
-			definitionMock.Setup(a => a.CopySourceFile(It.Is<string>(s => s == "test.cub"))).Returns(false); // batch file only executes when copy function returns false
-
-			var program = new Program
-			{
-				Settings = settingsMock.Object,
-				Definition = definitionMock.Object
-			};
+			var program = new Program { Settings = settings, Definition = definition };
 			var result = program.Run();
 
-			definitionMock.Verify(a => a.RunBatchFile(It.Is<string>(s => s == "test.cub")), Times.Once());
-			definitionMock.Verify(a => a.DoesLogFileIndicateCommonError(It.Is<string>(s => s == "test.cub")), Times.Once()); 
-			definitionMock.Verify(a => a.SendMessage(It.Is<IFileInfo[]>(f => f.Count() == 1)), Times.Once());
+			mock.Verify(a => a.DoesLogFileIndicateCommonError(It.Is<string>(s => s == "test.cub")), Times.Once()); 
+			mock.Verify(a => a.CopySourceFile(It.Is<string>(s => s == "test.cub")), Times.Once());
+			mock.Verify(a => a.RunBatchFile(It.Is<string>(s => s == "test.cub")), Times.Once());
+			mock.Verify(a => a.SendMessage(It.Is<IFileInfo[]>(f => f.Count() == 1)), Times.Once());
 			Assert.AreEqual(1, result);
 
 		}
 
 		[Test]
-		public void more_than_three_failing_tests_sends_critical_email()
+		public void batch_file_does_not_run_when_copy_was_successful()
 		{
-			var app = new Mock<IProgramDefinition>();
+			Mock<IProgramDefinition> mock;
+			var settings = Factory.CreateSettings();
+			var files = new[] { Factory.CreateFile("test.cub", DateTime.Now.AddDays(-1).Date) };
+			var definition = Factory.CreateDefinition(files, out mock, s => s == "test.cub");
+
+			var program = new Program { Settings = settings, Definition = definition };
+			var result = program.Run();
+
+			mock.Verify(a => a.DoesLogFileIndicateCommonError(It.Is<string>(s => s == "test.cub")), Times.Once()); 
+			mock.Verify(a => a.CopySourceFile(It.Is<string>(s => s == "test.cub")), Times.Once());
+			mock.Verify(a => a.RunBatchFile(It.Is<string>(s => s == "test.cub")), Times.Never());
+			mock.Verify(a => a.SendMessage(It.Is<IFileInfo[]>(f => f.Count() == 1)), Times.Once());
+			Assert.AreEqual(1, result);
+
+		}
+
+		[Test]
+		public void more_than_three_unprocessed_files_short_circuits_loop()
+		{
+			Mock<IProgramDefinition> mock;
 			var files = new[]
 			{
 				Factory.CreateFile("bad1.cub", DateTime.Now.AddDays(-1).Date),
 				Factory.CreateFile("bad2.cub", DateTime.Now.AddDays(-1).Date),
+				Factory.CreateFile("bad3.cub", DateTime.Now.AddDays(-1).Date),
+				Factory.CreateFile("bad4.cub", DateTime.Now.AddDays(-1).Date),
 				Factory.CreateFile("good.cub", DateTime.Now.Date)
 			};
+			var settings = Factory.CreateSettings();
+			var definition = Factory.CreateDefinition(files, out mock);
+
+			var program = new Program {Settings = settings, Definition = definition};
+			var result = program.Run();
+
+			mock.Verify(a => a.DoesLogFileIndicateCommonError(It.Is<string>(s => s.Contains("bad"))), Times.Never()); 
+			mock.Verify(a => a.CopySourceFile(It.Is<string>(s => s.Contains("bad"))), Times.Never());
+			mock.Verify(a => a.RunBatchFile(It.Is<string>(s => s.Contains("bad"))), Times.Never());
+			mock.Verify(a => a.SendMessage(It.Is<IFileInfo[]>(f => f.Count() == 4)), Times.Once());
+			Assert.AreEqual(-1, result);
+
 		}
 
 		[Test]
-		public void no_outdated_files_sends_keep_sleeping_email()
+		public void no_outdated_files_does_not_process_loop()
 		{
-			
+			Mock<IProgramDefinition> mock;
+			var settings = Factory.CreateSettings();
+			var files = new[] { Factory.CreateFile("test.cub", DateTime.Now.Date) };
+			var definition = Factory.CreateDefinition(files, out mock);
+
+			var program = new Program { Settings = settings, Definition = definition };
+			var result = program.Run();
+
+			mock.Verify(a => a.DoesLogFileIndicateCommonError(It.Is<string>(s => s == "test.cub")), Times.Never()); 
+			mock.Verify(a => a.CopySourceFile(It.Is<string>(s => s == "test.cub")), Times.Never());
+			mock.Verify(a => a.RunBatchFile(It.Is<string>(s => s == "test.cub")), Times.Never());
+			mock.Verify(a => a.SendMessage(It.Is<IFileInfo[]>(f => !f.Any())), Times.Once());
+			Assert.AreEqual(0, result);
 		}
 
-		[Test]
+		[Test, Ignore]
 		public void successful_run_reports_keep_sleeping_email()
 		{
-			
+			Mock<IProgramDefinition> mock;
+			var settings = Factory.CreateSettings();
+			var files = new[] { Factory.CreateFile("test.cub", DateTime.Now.AddDays(-1).Date) };
+			var definition = Factory.CreateDefinition(files, out mock, null, s => false);
+
+			var program = new Program { Settings = settings, Definition = definition };
+			var result = program.Run();
+
+			mock.Verify(a => a.CopySourceFile(It.Is<string>(s => s == "test.cub")), Times.Once());
+			mock.Verify(a => a.RunBatchFile(It.Is<string>(s => s == "test.cub")), Times.Once());
+			mock.Verify(a => a.DoesLogFileIndicateCommonError(It.Is<string>(s => s == "test.cub")), Times.Once()); 
+			mock.Verify(a => a.SendMessage(It.Is<IFileInfo[]>(f => f.Count() == 1)), Times.Once());
+			Assert.AreEqual(1, result);
 		}
 
-		[Test]
+		[Test, Ignore]
 		public void failed_run_reports_wake_up_email()
 		{
 			

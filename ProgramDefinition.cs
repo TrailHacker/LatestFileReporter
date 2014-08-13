@@ -127,7 +127,6 @@ namespace LatestFileReporter
 			return Path.Combine(directory, name + extension);
 		}
 
-		// *******************************************************************
 		// NOTE: code taken from http://stackoverflow.com/a/398512/84406
 		// *******************************************************************
 		private static string ReadEndTokens(string path, Int64 numberOfTokens, Encoding encoding, string tokenSeparator)
@@ -167,7 +166,6 @@ namespace LatestFileReporter
 			}
 		}
 
-		// ******************************************************************
 		// NOTE: code taken from http://stackoverflow.com/a/5519517/84406
 		// ******************************************************************
 		private static int ExecuteCommand(string command)

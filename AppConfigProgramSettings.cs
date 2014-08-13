@@ -12,7 +12,7 @@ namespace LatestFileReporter
 
 			FromEmailAddress = appSettings["fromEmailAddress"];
 			ToEmailAddresses = appSettings["toEmailAddresses"].Split(';');
-			MaxFailCountBeforeFailing = Convert.ToInt32(appSettings["MaxCountOfOutdatedFilesBeforeFailing"] ?? "3");
+			MaxCountOfOutdatedFilesBeforeFailing = Convert.ToInt32(appSettings["MaxCountOfOutdatedFilesBeforeFailing"] ?? "3");
 
 			AttemptedRunCounter = Convert.ToInt32(appSettings["BatchRunnerAttempts"] ?? "3");
 			DestinationFileDirectoryPath = appSettings["destinationDirectory"];
@@ -32,7 +32,7 @@ namespace LatestFileReporter
 		public string BatchFileDirectoryPath { get; private set; }
 		public string SearchFileExtension { get; private set; }
 		public string LogFileExtension { get; private set; }
-		public int MaxFailCountBeforeFailing { get; private set; }
+		public int MaxCountOfOutdatedFilesBeforeFailing { get; private set; }
 		public int AttemptedRunCounter { get; private set; }
 	}
 }
