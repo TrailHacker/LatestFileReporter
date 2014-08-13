@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -6,74 +7,51 @@ using LatestFileReporter.Interfaces;
 
 namespace LatestFileReporter
 {
-	public class Application : IApplication
+	public class ProgramDefinition : IProgramDefinition
 	{
-		private readonly TextWriter[] _writers;
 
-		public IProgramSettings Definition { get; set; }
+		public IProgramSettings Settings { get; set; }
 		public IBatchRunner BatchRunner { get; set; }
 		public IMessageFactory MessageFactory { get; set; }
 		public IMailer Mailer { get; set; }
 
-		public Application(IProgramSettings definition, params TextWriter[] writers)
+		public ProgramDefinition(IProgramSettings settings)
 		{
-			_writers = writers ?? new TextWriter[0];
-
-			Definition = definition;
+			Settings = settings;
 			Mailer = new Mailer();
 			BatchRunner = new BatchFileRunner();
 			MessageFactory = new MessageFactory();
 		}
 
-		public IFileInfo[] GetOutdatedFiles()
+		public IQueryable<IFileInfo> GetFilesAsQueryable()
 		{
-			var directory = new DirectoryInfo(Definition.SourceFileDirectoryPath);
-			var files = (from fileInfo in directory.GetFileSystemInfos("*" + Definition.SearchFileExtension)
-						 let file = (IFileInfo) new FileWrapper(fileInfo)
-						 where !HasProcessedToday(file)
-						 select file).ToArray();
-
-			switch (files.Count())
-			{
-				case 0:
-					WriteLine("All files are up to date!");
-					break;
-				case 1:
-					WriteLine("There is 1 file out of date.");
-					break;
-				default:
-					WriteLine("There are {0} files that didn't process today.", files.Count());
-					break;
-			}
-
-			if (files.Length > Definition.MaxFailCountBeforeFailing)
-				throw new TooManyFailingCubesException(files);
-
-			return files;
+			var directory = new DirectoryInfo(Settings.SourceFileDirectoryPath);
+			return (from fileInfo in directory.GetFileSystemInfos("*" + Settings.SearchFileExtension)
+				select (IFileInfo) new FileWrapper(fileInfo)).AsQueryable();
 		}
 
-		public bool HasProcessedToday(IFileInfo file)
+		public string GetSourceFile(string fileName)
 		{
-			return !(file.LastWriteTime < DateTime.Now.Date);
+			return BuildPath(Settings.SourceFileDirectoryPath, fileName, Settings.SearchFileExtension);
 		}
 
-		private bool HasProcessedToday(string filePath)
+		public string GetDestinationFile(string fileName)
 		{
-			return HasProcessedToday(new FileWrapper(filePath));
+			return BuildPath(Settings.DestinationFileDirectoryPath, fileName, Settings.SearchFileExtension);
 		}
 
 		public bool CopySourceFile(string fileName)
 		{
-			var sourceFilePath = BuildPath(Definition.SourceFileDirectoryPath, fileName, Definition.SearchFileExtension);
-			var destinationFilePath = BuildPath(Definition.DestinationFileDirectoryPath, fileName, Definition.SearchFileExtension);
+			var sourceFilePath = BuildPath(Settings.SourceFileDirectoryPath, fileName, Settings.SearchFileExtension);
+			var destinationFilePath = BuildPath(Settings.DestinationFileDirectoryPath, fileName, Settings.SearchFileExtension);
 
 			// if the file doesn't exist, or it exists, but hasn't been processed today, return false
-			if (!File.Exists(sourceFilePath) || !HasProcessedToday(sourceFilePath))
+			if (!File.Exists(sourceFilePath) || !Program.HasProcessedToday(sourceFilePath))
 				return false;
 
 			// otherwise, the file exists and was processed today, so copy it to the destination path
 			File.Copy(sourceFilePath, destinationFilePath, true);
-			WriteLine("Copied file from source directory: {0}", fileName);
+			Program.WriteLine("Copied file from source directory: {0}", fileName);
 
 			// the copy was successful
 			return true;
@@ -84,19 +62,19 @@ namespace LatestFileReporter
 			var path = BuildPath(BatchRunner.BatchFileDirectoryPath, fileName, ".bat");
 			if (!File.Exists(path))
 			{
-				WriteLine("Batch file does note exist: {0}", path);
+				Program.WriteLine("Batch file does note exist: {0}", path);
 				return false;
 			}
 
-			WriteLine("Started batch file: [{0}]", path);
+			Program.WriteLine("Started batch file: [{0}]", path);
 			var exitCode = BatchRunner.Run(path);
-			WriteLine("Batch file exited with '{0}'", exitCode);
+			Program.WriteLine("Batch file exited with '{0}'", exitCode);
 			return exitCode == 0;
 		}
 
 		public bool KeepGoing(int runCount)
 		{
-			WriteLine("Attempt {0} of {1}.", runCount, BatchRunner.AttemptedRunCounter);
+			Program.WriteLine("Attempt {0} of {1}.", runCount, BatchRunner.AttemptedRunCounter);
 			return runCount < BatchRunner.AttemptedRunCounter;
 		}
 
@@ -108,12 +86,12 @@ namespace LatestFileReporter
 
 		public void ReportError(string message)
 		{
-			WriteLine(message);
+			Program.WriteLine(message);
 		}
 
 		public bool DoesLogFileIndicateCommonError(string fileName)
 		{
-			var logFile = BuildPath(Definition.LogFileDirectoryPath, fileName, Definition.LogFileExtension);
+			var logFile = BuildPath(Settings.LogFileDirectoryPath, fileName, Settings.LogFileExtension);
 			var tail = ReadEndTokens(logFile, 10, Encoding.UTF8, "\n");
 			return tail.Contains("Unable to create binary file");
 		}
@@ -165,18 +143,5 @@ namespace LatestFileReporter
 			}
 		}
 
-		private void WriteLine(string format, params object[] args)
-		{
-			if (args == null)
-				throw new ArgumentNullException("args");
-
-			WriteLine(string.Format(format, args));
-		}
-
-		private void WriteLine(string message)
-		{
-			foreach (var writer in _writers)
-				writer.WriteLine(message);
-		}
 	}
 }

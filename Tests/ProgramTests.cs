@@ -18,9 +18,22 @@ namespace LatestFileReporter.Tests
 		}
 
 		[Test]
+		public void get_oudated_files_returns_all_files_where_last_write_time_not_today()
+		{
+			var files = new[]
+			{
+				Factory.CreateFile("bad1.cub", DateTime.Now.AddDays(-10).Date),
+				Factory.CreateFile("bad2.cub", DateTime.Now.AddDays(-1).Date),
+				Factory.CreateFile("good.cub", DateTime.Now.Date)
+			};
+			var count = files.Where(Program.HasProcessedToday).Count();
+			Assert.AreEqual(2, count);
+		}
+
+		[Test]
 		public void unprocessed_file_triggers_batch_file()
 		{
-			var mock = new Mock<IApplication>();
+			var mock = new Mock<IProgramDefinition>();
 			var files = new[]
 			{
 				Factory.CreateFile("test.cub", DateTime.Now.AddDays(-1).Date)
@@ -31,13 +44,17 @@ namespace LatestFileReporter.Tests
 			// BUG: Need to figure out how to get the max fail count 
 			// IDEA: This belongs on the 'Program'...
 
-			mock.Setup(a => a.GetOutdatedFiles()).Returns(files);
+			mock.Setup(a => a.GetFilesAsQueryable()).Returns(files.AsQueryable());
 			mock.Setup(a => a.DoesLogFileIndicateCommonError(It.Is<string>(s => s == "test.cub"))).Returns(true); // only executes when function returns true
 			mock.Setup(a => a.CopySourceFile(It.Is<string>(s => s == "test.cub"))).Returns(false); // batch file only executes when copy function returns false
 			mock.Setup(a => a.KeepGoing(It.Is<int>(i => i == 1))).Returns(false); // short circuit to one iteration
 
-			var program = new Program();
-			var result = program.Run(mock.Object);
+			var program = new Program
+			{
+				Settings = defMock.Object,
+				Definition = mock.Object
+			};
+			var result = program.Run();
 
 			mock.Verify(a => a.RunBatchFile(It.Is<string>(s => s == "test.cub")), Times.Once());
 			mock.Verify(a => a.DoesLogFileIndicateCommonError(It.Is<string>(s => s == "test.cub")), Times.Once()); 
@@ -49,7 +66,7 @@ namespace LatestFileReporter.Tests
 		[Test]
 		public void more_than_three_failing_tests_sends_critical_email()
 		{
-			var app = new Mock<IApplication>();
+			var app = new Mock<IProgramDefinition>();
 			var files = new[]
 			{
 				Factory.CreateFile("bad1.cub", DateTime.Now.AddDays(-1).Date),
