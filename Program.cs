@@ -7,11 +7,11 @@ namespace LatestFileReporter
 {
 	sealed class Program
 	{
-		private static AppFileSystem _definition;
+		private static IProgramSettings _definition;
 
 		static int Main()
 		{
-			_definition = new AppFileSystem();
+			_definition = new AppConfigProgramSettings();
 
 			var app = new Application(_definition, Console.Out);
 			var program = new Program();
@@ -27,11 +27,9 @@ namespace LatestFileReporter
 			try
 			{
 				var files = app.GetOutdatedFiles();
-				if (files.Length > _definition.MaxFailCountBeforeFailing)
-					throw new TooManyFailingCubesException(files);
-
 				var attempt = 0;
 				var keepGoing = true;
+
 				while (files.Any() && keepGoing)
 				{
 					foreach (var file in files)

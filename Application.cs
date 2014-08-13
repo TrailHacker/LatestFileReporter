@@ -9,12 +9,13 @@ namespace LatestFileReporter
 	public class Application : IApplication
 	{
 		private readonly TextWriter[] _writers;
-		public IFileSystem Definition { get; set; }
+
+		public IProgramSettings Definition { get; set; }
 		public IBatchRunner BatchRunner { get; set; }
 		public IMessageFactory MessageFactory { get; set; }
 		public IMailer Mailer { get; set; }
 
-		public Application(IFileSystem definition, params TextWriter[] writers)
+		public Application(IProgramSettings definition, params TextWriter[] writers)
 		{
 			_writers = writers ?? new TextWriter[0];
 
@@ -45,10 +46,13 @@ namespace LatestFileReporter
 					break;
 			}
 
+			if (files.Length > Definition.MaxFailCountBeforeFailing)
+				throw new TooManyFailingCubesException(files);
+
 			return files;
 		}
 
-		private bool HasProcessedToday(IFileInfo file)
+		public bool HasProcessedToday(IFileInfo file)
 		{
 			return !(file.LastWriteTime < DateTime.Now.Date);
 		}

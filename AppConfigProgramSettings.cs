@@ -4,9 +4,9 @@ using LatestFileReporter.Interfaces;
 
 namespace LatestFileReporter
 {
-	public class AppFileSystem : IFileSystem
+	public class AppConfigProgramSettings : IProgramSettings
 	{
-		public AppFileSystem()
+		public AppConfigProgramSettings()
 		{
 			var appSettings = ConfigurationManager.AppSettings;
 
@@ -18,11 +18,11 @@ namespace LatestFileReporter
 			MaxFailCountBeforeFailing = Convert.ToInt32(appSettings["MaxCountOfOutdatedFilesBeforeFailing"]);
 		}
 
-		public string DestinationFileDirectoryPath { get; set; }
-		public string SourceFileDirectoryPath { get; set; }
-		public string LogFileDirectoryPath { get; set; }
-		public string SearchFileExtension { get; set; }
-		public string LogFileExtension { get; set; }
-		public int MaxFailCountBeforeFailing { get; set; }
+		public string DestinationFileDirectoryPath { get; private set; }
+		public string SourceFileDirectoryPath { get; private set; }
+		public string LogFileDirectoryPath { get; private set; }
+		public string SearchFileExtension { get; private set; }
+		public string LogFileExtension { get; private set; }
+		public int MaxFailCountBeforeFailing { get; private set; }
 	}
 }
