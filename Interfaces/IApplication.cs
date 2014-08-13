@@ -8,6 +8,6 @@
 		bool KeepGoing(int runCount);
 		void SendMessage(IFileInfo[] files);
 		void ReportError(string message);
-
+		bool DoesLogFileIndicateCommonError(string fileName);
 	}
 }

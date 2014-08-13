@@ -4,5 +4,6 @@
 	{
 		string BatchFileDirectoryPath { get; set; }
 		int AttemptedRunCounter { get; set; }
+		int Run(string filePath);
 	}
 }

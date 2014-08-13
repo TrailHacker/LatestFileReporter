@@ -9,16 +9,19 @@ namespace LatestFileReporter
 	{
 		public BatchFileRunner()
 		{
-			var appSettings = ConfigurationManager.AppSettings;
-			BatchFileDirectoryPath = appSettings["batchDirectory"];
+			BatchFileDirectoryPath = ConfigurationManager.AppSettings["batchDirectory"];
 			AttemptedRunCounter = 3;
 		}
 
 		public string BatchFileDirectoryPath { get; set; }
 		public int AttemptedRunCounter { get; set; }
-		public static void ExecuteCommand(string command)
+
+		// ******************************************************************
+		// NOTE: code taken from http://stackoverflow.com/a/5519517/84406
+		// ******************************************************************
+		public int Run(string filePath)
 		{
-			var processInfo = new ProcessStartInfo("cmd.exe", "/c " + command)
+			var processInfo = new ProcessStartInfo("cmd.exe", "/c " + filePath)
 			{
 				CreateNoWindow = true,
 				UseShellExecute = false,
@@ -42,6 +45,9 @@ namespace LatestFileReporter
 			Console.WriteLine("error>>" + (String.IsNullOrEmpty(error) ? "(none)" : error));
 			Console.WriteLine("ExitCode: " + exitCode, "ExecuteCommand");
 			process.Close();
+
+			// return the result
+			return exitCode;
 		}
 
 	}

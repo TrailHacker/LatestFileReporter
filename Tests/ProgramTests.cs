@@ -13,6 +13,7 @@ namespace LatestFileReporter
 		[SetUp]
 		public void SetupMailer()
 		{
+
 		}
 
 		[Test]
@@ -42,6 +43,8 @@ namespace LatestFileReporter
 			Assert.AreEqual(1, result);
 
 		}
+
+
 
 		private static IFileInfo CreateFile(string fileName, DateTime date)
 		{

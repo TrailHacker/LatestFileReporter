@@ -1,4 +1,5 @@
-﻿using System.Configuration;
+﻿using System;
+using System.Configuration;
 using LatestFileReporter.Interfaces;
 
 namespace LatestFileReporter
@@ -8,16 +9,20 @@ namespace LatestFileReporter
 		public AppFileSystem()
 		{
 			var appSettings = ConfigurationManager.AppSettings;
+
+			DestinationFileDirectoryPath = appSettings["destinationDirectory"];
+			SourceFileDirectoryPath = appSettings["sourceDirectory"];
 			SearchFileExtension = appSettings["searchFileExtension"];
+			LogFileDirectoryPath = appSettings["logsDirectory"];
 			LogFileExtension = appSettings["logFileExtension"];
-			DestinationsDirectoryPath = appSettings["destinationDirectory"];
-			SourceDirectoryPath = appSettings["sourceDirectory"];
-			
+			MaxFailCountBeforeFailing = Convert.ToInt32(appSettings["MaxCountOfOutdatedFilesBeforeFailing"]);
 		}
-		public string DestinationsDirectoryPath { get; set; }
-		public string SourceDirectoryPath { get; set; }
-		public string SearchFileExtension { get; set; }
+
+		public string DestinationFileDirectoryPath { get; set; }
+		public string SourceFileDirectoryPath { get; set; }
 		public string LogFileDirectoryPath { get; set; }
+		public string SearchFileExtension { get; set; }
 		public string LogFileExtension { get; set; }
+		public int MaxFailCountBeforeFailing { get; set; }
 	}
 }
