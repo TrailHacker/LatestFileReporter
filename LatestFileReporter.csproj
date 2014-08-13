@@ -87,20 +87,14 @@
   <ItemGroup>
     <Compile Include="AppConfigProgramSettings.cs" />
     <Compile Include="ProgramDefinition.cs" />
-    <Compile Include="BatchFileRunner.cs" />
     <Compile Include="FileWrapper.cs" />
     <Compile Include="Interfaces\IProgramDefinition.cs" />
-    <Compile Include="Interfaces\IBatchRunner.cs" />
     <Compile Include="Interfaces\IFileInfo.cs" />
     <Compile Include="Interfaces\IProgramSettings.cs" />
-    <Compile Include="Interfaces\IMessageFactory.cs" />
-    <Compile Include="Interfaces\IMailer.cs" />
-    <Compile Include="MessageFactory.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Tests\Factory.cs" />
     <Compile Include="Tests\ProgramTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Mailer.cs" />
     <Compile Include="TooManyFailingCubesException.cs" />
   </ItemGroup>
   <ItemGroup>

@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections;
-using System.Configuration;
 using System.IO;
 using System.Linq;
 using LatestFileReporter.Interfaces;
@@ -139,22 +137,35 @@ namespace LatestFileReporter
 
 		private bool CopySourceFile(string fileName)
 		{
-			return Definition.CopySourceFile(fileName);
+			if (!Definition.CopySourceFile(fileName)) 
+				return false;
+
+			WriteLine("Copied file from source directory: {0}", fileName);
+			return true;
 		}
 
 		private bool RunBatchFile(string fileName)
 		{
-			return Definition.RunBatchFile(fileName);
+			WriteLine("Starting batch file to rebuild [{0}]", fileName);
+			if (!Definition.RunBatchFile(fileName))
+			{
+				WriteLine("Batch file failed!");
+				return false;
+			}
+
+			WriteLine("Finished processing batch file");
+			return true;
 		}
 
 		private bool KeepGoing(int attempts)
 		{
-			return Definition.KeepGoing(attempts);
+			WriteLine("Attempt {0} of {1}.", attempts, Settings.AttemptedRunCounter);
+			return attempts < Settings.AttemptedRunCounter;
 		}
 
 		private void ReportError(string message)
 		{
-			Definition.ReportError(message);
+			WriteLine("Error: " + message);
 		}
 
 		private void SendMessage(IFileInfo[] files)

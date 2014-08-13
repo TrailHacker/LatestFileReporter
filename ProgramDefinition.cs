@@ -1,7 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
+using System.Configuration;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Net;
+using System.Net.Mail;
 using System.Text;
 using LatestFileReporter.Interfaces;
 
@@ -9,18 +12,11 @@ namespace LatestFileReporter
 {
 	public class ProgramDefinition : IProgramDefinition
 	{
-
-		public IProgramSettings Settings { get; set; }
-		public IBatchRunner BatchRunner { get; set; }
-		public IMessageFactory MessageFactory { get; set; }
-		public IMailer Mailer { get; set; }
+		private IProgramSettings Settings { get; set; }
 
 		public ProgramDefinition(IProgramSettings settings)
 		{
 			Settings = settings;
-			Mailer = new Mailer();
-			BatchRunner = new BatchFileRunner();
-			MessageFactory = new MessageFactory();
 		}
 
 		public IQueryable<IFileInfo> GetFilesAsQueryable()
@@ -30,14 +26,11 @@ namespace LatestFileReporter
 				select (IFileInfo) new FileWrapper(fileInfo)).AsQueryable();
 		}
 
-		public string GetSourceFile(string fileName)
+		public bool DoesLogFileIndicateCommonError(string fileName)
 		{
-			return BuildPath(Settings.SourceFileDirectoryPath, fileName, Settings.SearchFileExtension);
-		}
-
-		public string GetDestinationFile(string fileName)
-		{
-			return BuildPath(Settings.DestinationFileDirectoryPath, fileName, Settings.SearchFileExtension);
+			var logFile = BuildPath(Settings.LogFileDirectoryPath, fileName, Settings.LogFileExtension);
+			var tail = ReadEndTokens(logFile, 10, Encoding.UTF8, "\n");
+			return tail.Contains("Unable to create binary file");
 		}
 
 		public bool CopySourceFile(string fileName)
@@ -51,7 +44,6 @@ namespace LatestFileReporter
 
 			// otherwise, the file exists and was processed today, so copy it to the destination path
 			File.Copy(sourceFilePath, destinationFilePath, true);
-			Program.WriteLine("Copied file from source directory: {0}", fileName);
 
 			// the copy was successful
 			return true;
@@ -59,44 +51,76 @@ namespace LatestFileReporter
 
 		public bool RunBatchFile(string fileName)
 		{
-			var path = BuildPath(BatchRunner.BatchFileDirectoryPath, fileName, ".bat");
+			var path = BuildPath(Settings.BatchFileDirectoryPath, fileName, ".bat");
 			if (!File.Exists(path))
-			{
-				Program.WriteLine("Batch file does note exist: {0}", path);
-				return false;
-			}
+				throw new FileNotFoundException("Unable to find batch file", path);
 
-			Program.WriteLine("Started batch file: [{0}]", path);
-			var exitCode = BatchRunner.Run(path);
-			Program.WriteLine("Batch file exited with '{0}'", exitCode);
-			return exitCode == 0;
-		}
-
-		public bool KeepGoing(int runCount)
-		{
-			Program.WriteLine("Attempt {0} of {1}.", runCount, BatchRunner.AttemptedRunCounter);
-			return runCount < BatchRunner.AttemptedRunCounter;
+			return ExecuteCommand(path) == 0;
 		}
 
 		public void SendMessage(IFileInfo[] files)
 		{
-			var message = MessageFactory.Create(files);
-			Mailer.Send(message);
+			using (var message = CreateMailMessage(files))
+			using (var client = CreateSmtpClient())
+				client.Send(message);
 		}
 
-		public void ReportError(string message)
+
+		private MailMessage CreateMailMessage(IFileInfo[] outdatedFiles)
 		{
-			Program.WriteLine(message);
+			var message = new MailMessage(string.Join(";", Settings.ToEmailAddresses), Settings.FromEmailAddress);
+			if (outdatedFiles.Any())
+			{
+				var friendlyMessage = string.Format("There are {0} files that were not copied: ", outdatedFiles.Count());
+				var body = new StringBuilder();
+				Console.WriteLine(friendlyMessage);
+				body.Append(friendlyMessage);
+				foreach (var file in outdatedFiles)
+				{
+					Console.WriteLine("\t" + file);
+					body.Append("\t" + file.Name);
+				}
+				message.Subject = "Wake Up!";
+				message.Body = body.ToString();
+			}
+			else
+			{
+				Console.WriteLine("All files are up to date!");
+				message.Subject = "Keep sleeping... All is Good.";
+				message.Body = "All files are up to date!";
+			}
+
+			return message;
 		}
 
-		public bool DoesLogFileIndicateCommonError(string fileName)
+		private static SmtpClient CreateSmtpClient()
 		{
-			var logFile = BuildPath(Settings.LogFileDirectoryPath, fileName, Settings.LogFileExtension);
-			var tail = ReadEndTokens(logFile, 10, Encoding.UTF8, "\n");
-			return tail.Contains("Unable to create binary file");
+			var smtpUserName = Environment.GetEnvironmentVariable("SmtpUserName", EnvironmentVariableTarget.User);
+			if (string.IsNullOrEmpty(smtpUserName))
+				throw new ApplicationException("Expecting a User environment variable named 'SmtpUserName'");
+
+			var smtpPassword = Environment.GetEnvironmentVariable("SmtpPassword", EnvironmentVariableTarget.User);
+			if (string.IsNullOrEmpty(smtpPassword))
+				throw new ApplicationException("Expecting a User environment variable named 'SmtpPassword'");
+
+			SmtpDeliveryMethod deliveryMethod;
+			var appSettings = ConfigurationManager.AppSettings;
+			if (!Enum.TryParse(appSettings["smtpDeliveryMethod"] ?? string.Empty, true, out deliveryMethod))
+				deliveryMethod = SmtpDeliveryMethod.Network;
+
+			var client = new SmtpClient
+			{
+				Port = Convert.ToInt32(appSettings["smtpPort"]),
+				Host = appSettings["smtpHost"],
+				EnableSsl = Convert.ToBoolean(appSettings["smtpEnableSsl"]),
+				UseDefaultCredentials = Convert.ToBoolean(appSettings["smtpUseDefaultCreds"]),
+				Credentials = new NetworkCredential(smtpUserName, smtpPassword),
+				DeliveryMethod = deliveryMethod
+			};
+			return client;
 		}
 
-		private string BuildPath(string directory, string fileName, string extension)
+		private static string BuildPath(string directory, string fileName, string extension)
 		{
 			var temp = Path.Combine(directory, fileName);
 			var name = Path.GetFileNameWithoutExtension(temp);
@@ -141,6 +165,40 @@ namespace LatestFileReporter
 				fs.Read(buffer, 0, buffer.Length);
 				return encoding.GetString(buffer);
 			}
+		}
+
+		// ******************************************************************
+		// NOTE: code taken from http://stackoverflow.com/a/5519517/84406
+		// ******************************************************************
+		private static int ExecuteCommand(string command)
+		{
+			var processInfo = new ProcessStartInfo("cmd.exe", "/c " + command)
+			{
+				CreateNoWindow = true,
+				UseShellExecute = false,
+				RedirectStandardError = true,
+				RedirectStandardOutput = true
+			};
+
+			// *** Redirect the output ***
+			var process = Process.Start(processInfo);
+			if (process == null)
+				throw new InvalidOperationException("Process is null");
+
+			process.WaitForExit();
+
+			// *** Read the streams ***
+			var output = process.StandardOutput.ReadToEnd();
+			var error = process.StandardError.ReadToEnd();
+			var exitCode = process.ExitCode;
+
+			Console.WriteLine("output>>" + (String.IsNullOrEmpty(output) ? "(none)" : output));
+			Console.WriteLine("error>>" + (String.IsNullOrEmpty(error) ? "(none)" : error));
+			Console.WriteLine("ExitCode: " + exitCode, "ExecuteCommand");
+			process.Close();
+
+			// return the result
+			return exitCode;
 		}
 
 	}
