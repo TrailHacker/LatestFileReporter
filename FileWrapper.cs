@@ -8,7 +8,9 @@ namespace LatestFileReporter
 	{
 		private readonly FileSystemInfo _file;
 
-		public FileWrapper(string path) : this(new FileInfo(path)) { }
+		#region Ctor
+
+		public FileWrapper(string path) : this(new FileInfo(path)) {}
 
 		public FileWrapper(FileSystemInfo file)
 		{
@@ -16,6 +18,8 @@ namespace LatestFileReporter
 				throw new ArgumentNullException("file");
 			_file = file;
 		}
+
+		#endregion
 
 		public string Name
 		{

@@ -1,33 +1,46 @@
 ﻿using System;
-using System.IO;
 using System.Linq;
 using LatestFileReporter.Interfaces;
+using log4net;
 
 namespace LatestFileReporter
 {
 	sealed class Program
 	{
+		private readonly ILog _logger;
+
 		public IProgramSettings Settings { get; set; }
 		public IProgramDefinition Definition { get; set; }
 
-		private readonly TextWriter[] _writers; 
+		#region Static Methods
 
-		static int Main()
+		private static int Main()
 		{
-			var settings = new AppConfigProgramSettings();
-
+			var settings = new AppConfig();
 			var program = new Program
 			{
 				Settings = settings,
 				Definition = new ProgramDefinition(settings)
 			};
 			return program.Run();
-
 		}
+
+		public static bool HasProcessedToday(string filePath)
+		{
+			return HasProcessedToday(new FileWrapper(filePath));
+		}
+
+		public static bool HasProcessedToday(IFileInfo file)
+		{
+			return !(file.LastWriteTime < DateTime.Now.Date);
+		}
+
+
+		#endregion
 
 		public Program()
 		{
-			_writers = new[] {Console.Out};
+			_logger = LogManager.GetLogger(typeof(Program));
 		}
 
 		public int Run()
@@ -45,30 +58,14 @@ namespace LatestFileReporter
 				{
 					foreach (var file in files)
 					{
-						// ensure that the log file reports a certain error...
 						if (!DoesLogFileIndicateCommonError(file.Name))
-						{
-							WriteLine("Log file does NOT report a common error. Reading next file...");
 							continue;
-						}
-
-						WriteLine("Log file reports common error.");
 
 						if (CopySourceFile(file.Name))
-						{
-							WriteLine("Source file found and copied. Reading next file...");
 							continue;
-						}
 
-						WriteLine("Source file was not found.");
+						RunBatchFile(file.Name);
 
-						if (RunBatchFile(file.Name))
-						{
-							WriteLine("Batch file ran successfully. Reading next file...");
-							continue;
-						}
-
-						WriteLine("Batch file failed!");
 					}
 
 					attempt++;
@@ -77,15 +74,15 @@ namespace LatestFileReporter
 
 				}
 
-				WriteLine("Sending email!");
+				_logger.Info("Sending email!");
 				SendMessage(files);
 				result = files.Count();
 
 			}
 			catch (TooManyFailingCubesException majorOops)
 			{
-				ReportError(string.Format("{0}: \nOutdated Files: {1}", majorOops.Message,
-					majorOops.FailingFiles.Select(f => string.Format("{0} ({1})", f.Name, f.LastWriteTime))));
+				var failingFiles = majorOops.FailingFiles.Select(f => string.Format("{0} ({1})", f.Name, f.LastWriteTime));
+				_logger.ErrorFormat("{0}: \nOutdated Files: {1}", majorOops.Message, string.Join(", ", failingFiles));
 
 				SendMessage(majorOops.FailingFiles);
 				result = -1;
@@ -101,6 +98,8 @@ namespace LatestFileReporter
 
 		}
 
+		#region Private Methods
+
 		private IFileInfo[] GetOutdatedFiles()
 		{
 			var files = (from file in Definition.GetFilesAsQueryable()
@@ -110,13 +109,13 @@ namespace LatestFileReporter
 			switch (files.Length)
 			{
 				case 0:
-					WriteLine("All files are up to date!");
+					_logger.Info("All files are up to date!");
 					break;
 				case 1:
-					WriteLine("There is 1 file out of date.");
+					_logger.Info("There is 1 file out of date.");
 					break;
 				default:
-					WriteLine("There are {0} files that didn't process today.", files.Count());
+					_logger.WarnFormat("There are {0} files that didn't process today.", files.Count());
 					break;
 			}
 
@@ -128,35 +127,40 @@ namespace LatestFileReporter
 
 		private bool DoesLogFileIndicateCommonError(string filePath)
 		{
-			return Definition.DoesLogFileIndicateCommonError(filePath);
+			if (Definition.DoesLogFileIndicateCommonError(filePath))
+				return true;
+
+			_logger.Info("Log file does NOT report a common error. Reading next file...");
+			return false;
 		}
 
 		private bool CopySourceFile(string fileName)
 		{
-			if (!Definition.CopySourceFile(fileName)) 
+			if (!Definition.CopySourceFile(fileName))
 				return false;
 
-			WriteLine("Copied file from source directory: {0}", fileName);
+			_logger.InfoFormat("Copied file from source directory: {0}", fileName);
 			return true;
 		}
 
 		private bool RunBatchFile(string fileName)
 		{
-			WriteLine("Starting batch file to rebuild [{0}]", fileName);
+			_logger.InfoFormat("Starting batch file to rebuild [{0}]", fileName);
+
 			var result = Definition.RunBatchFile(fileName);
-			WriteLine("Finished processing batch file");
+			_logger.Info("Finished processing batch file");
 			return result;
 		}
 
 		private bool KeepGoing(int attempts)
 		{
-			WriteLine("Attempt {0} of {1}.", attempts, Settings.AttemptedRunCounter);
+			_logger.InfoFormat("Attempt {0} of {1}.", attempts, Settings.AttemptedRunCounter);
 			return attempts < Settings.AttemptedRunCounter;
 		}
 
 		private void ReportError(string message)
 		{
-			WriteLine("Error: " + message);
+			_logger.Error(message);
 		}
 
 		private void SendMessage(IFileInfo[] files)
@@ -164,29 +168,7 @@ namespace LatestFileReporter
 			Definition.SendMessage(files);
 		}
 
-		public static bool HasProcessedToday(string filePath)
-		{
-			return HasProcessedToday(new FileWrapper(filePath));
-		}
 
-		public static bool HasProcessedToday(IFileInfo file)
-		{
-			return !(file.LastWriteTime < DateTime.Now.Date);
-		}
-
-		private void WriteLine(string format, params object[] args)
-		{
-			if (args == null)
-				throw new ArgumentNullException("args");
-
-			WriteLine(string.Format(format, args));
-		}
-
-		private void WriteLine(string message)
-		{
-			foreach (var writer in _writers)
-				writer.WriteLine(message);
-		}
-
+		#endregion
 	}
 }

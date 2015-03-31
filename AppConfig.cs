@@ -4,23 +4,23 @@ using LatestFileReporter.Interfaces;
 
 namespace LatestFileReporter
 {
-	public class AppConfigProgramSettings : IProgramSettings
+	public class AppConfig : IProgramSettings
 	{
-		public AppConfigProgramSettings()
+		public AppConfig()
 		{
 			var appSettings = ConfigurationManager.AppSettings;
 
 			FromEmailAddress = appSettings["fromEmailAddress"];
 			ToEmailAddresses = appSettings["toEmailAddresses"].Split(';');
-			MaxCountOfOutdatedFilesBeforeFailing = Convert.ToInt32(appSettings["MaxCountOfOutdatedFilesBeforeFailing"] ?? "3");
 
-			AttemptedRunCounter = Convert.ToInt32(appSettings["BatchRunnerAttempts"] ?? "3");
-			DestinationFileDirectoryPath = appSettings["destinationDirectory"];
-			SourceFileDirectoryPath = appSettings["sourceDirectory"];
-			BatchFileDirectoryPath = ConfigurationManager.AppSettings["batchDirectory"];
-			LogFileDirectoryPath = appSettings["logsDirectory"];
+			MaxCountOfOutdatedFilesBeforeFailing = Convert.ToInt32(appSettings["MaxCountOfOutdatedFilesBeforeFailing"] ?? "3");
 			SearchFileExtension = appSettings["searchFileExtension"] ?? ".cub";
+			SourceFileDirectoryPath = appSettings["sourceDirectory"];
+			DestinationFileDirectoryPath = appSettings["destinationDirectory"];
+			BatchFileDirectoryPath = appSettings["batchDirectory"];
+			LogFileDirectoryPath = appSettings["logsDirectory"];
 			LogFileExtension = appSettings["logFileExtension"] ?? ".log";
+			AttemptedRunCounter = Convert.ToInt32(appSettings["BatchRunnerAttempts"] ?? "3");
 		}
 
 		public string FromEmailAddress { get; private set; }
