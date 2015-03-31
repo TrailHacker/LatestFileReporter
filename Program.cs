@@ -47,13 +47,26 @@ namespace LatestFileReporter
 					{
 						// ensure that the log file reports a certain error...
 						if (!DoesLogFileIndicateCommonError(file.Name))
+						{
+							WriteLine("Log file does NOT report a common error. Reading next file...");
 							continue;
+						}
+
+						WriteLine("Log file reports common error.");
 
 						if (CopySourceFile(file.Name))
+						{
+							WriteLine("Source file found and copied. Reading next file...");
 							continue;
+						}
+
+						WriteLine("Source file was not found.");
 
 						if (RunBatchFile(file.Name))
+						{
+							WriteLine("Batch file ran successfully. Reading next file...");
 							continue;
+						}
 
 						WriteLine("Batch file failed!");
 					}
@@ -64,6 +77,7 @@ namespace LatestFileReporter
 
 				}
 
+				WriteLine("Sending email!");
 				SendMessage(files);
 				result = files.Count();
 
@@ -150,14 +164,14 @@ namespace LatestFileReporter
 			Definition.SendMessage(files);
 		}
 
-		public static bool HasProcessedToday(IFileInfo file)
-		{
-			return !(file.LastWriteTime < DateTime.Now.Date);
-		}
-
 		public static bool HasProcessedToday(string filePath)
 		{
 			return HasProcessedToday(new FileWrapper(filePath));
+		}
+
+		public static bool HasProcessedToday(IFileInfo file)
+		{
+			return !(file.LastWriteTime < DateTime.Now.Date);
 		}
 
 		private void WriteLine(string format, params object[] args)
