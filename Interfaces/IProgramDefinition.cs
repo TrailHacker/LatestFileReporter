@@ -1,10 +1,10 @@
-﻿using System.Linq;
+﻿using System.Collections.Generic;
 
 namespace LatestFileReporter.Interfaces
 {
 	public interface IProgramDefinition
 	{
-		IQueryable<IFileInfo> GetFilesAsQueryable();
+		IEnumerable<IFileInfo> GetFilesToProcess();
 
 		bool CopySourceFile(string fileName);
 		bool RunBatchFile(string fileName);

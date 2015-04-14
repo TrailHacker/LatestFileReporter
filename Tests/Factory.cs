@@ -44,7 +44,7 @@ namespace LatestFileReporter.Tests
 			if (expressionToPassBatchRun == null)
 				expressionToPassBatchRun = s => true;
 
-			definitionMock.Setup(a => a.GetFilesAsQueryable()).Returns(files.AsQueryable());
+			definitionMock.Setup(a => a.GetFilesToProcess()).Returns(files.AsQueryable());
 			definitionMock.Setup(a => a.DoesLogFileIndicateCommonError(It.Is(expressionToPassLogCheck))).Returns(true); // only executes batch when function returns true
 			definitionMock.Setup(a => a.CopySourceFile(It.Is(expressionToPassCopyCheck))).Returns(true); // batch file only executes when copy function returns false
 			definitionMock.Setup(a => a.RunBatchFile(It.Is(expressionToPassBatchRun))).Returns(true); // batch file only executes when copy function returns false

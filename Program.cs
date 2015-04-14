@@ -54,7 +54,7 @@ namespace LatestFileReporter
 
 			try
 			{
-				var filesToAnalyze = Definition.GetFilesAsQueryable().ToArray();
+				var filesToAnalyze = Definition.GetFilesToProcess().ToArray();
 				var outdatedFiles = GetOutdatedFiles(filesToAnalyze);
 				var emptyFiles = GetEmptyFiles(filesToAnalyze);
 
@@ -67,6 +67,7 @@ namespace LatestFileReporter
 						ProcessFile(file);
 
 					attempt++;
+					filesToAnalyze = Definition.GetFilesToProcess().ToArray();
 					outdatedFiles = GetOutdatedFiles(filesToAnalyze);
 					keepGoing = KeepGoing(attempt);
 

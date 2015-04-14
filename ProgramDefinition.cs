@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Configuration;
 using System.Diagnostics;
 using System.IO;
@@ -19,14 +20,13 @@ namespace LatestFileReporter
 			Settings = settings;
 		}
 
-		public IQueryable<IFileInfo> GetFilesAsQueryable()
+		public IEnumerable<IFileInfo> GetFilesToProcess()
 		{
 			var ignoreList = Settings.IgnoreFileList;
 			var directory = new DirectoryInfo(Settings.SourceFileDirectoryPath);
-			return (from fileInfo in directory.GetFiles("*" + Settings.SearchFileExtension)
+			return from fileInfo in directory.GetFiles("*" + Settings.SearchFileExtension)
 				where !ignoreList.Contains(fileInfo.Name, StringComparer.InvariantCultureIgnoreCase)
-				select (IFileInfo) new FileWrapper(fileInfo)
-				).AsQueryable();
+				select (IFileInfo) new FileWrapper(fileInfo);
 		}
 
 		public bool DoesLogFileIndicateCommonError(string fileName)
