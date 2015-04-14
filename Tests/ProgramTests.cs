@@ -45,7 +45,7 @@ namespace LatestFileReporter.Tests
 			mock.Verify(a => a.DoesLogFileIndicateCommonError(It.Is<string>(s => s == "test.cub")), Times.Once()); 
 			mock.Verify(a => a.CopySourceFile(It.Is<string>(s => s == "test.cub")), Times.Once());
 			mock.Verify(a => a.RunBatchFile(It.Is<string>(s => s == "test.cub")), Times.Once());
-			mock.Verify(a => a.SendMessage(It.Is<IFileInfo[]>(f => f.Count() == 1)), Times.Once());
+			// mock.Verify(a => a.SendMessage(It.Is<IFileInfo[]>(f => f.Count() == 1)), Times.Once());
 			Assert.AreEqual(1, result);
 
 		}
@@ -64,7 +64,7 @@ namespace LatestFileReporter.Tests
 			mock.Verify(a => a.DoesLogFileIndicateCommonError(It.Is<string>(s => s == "test.cub")), Times.Once()); 
 			mock.Verify(a => a.CopySourceFile(It.Is<string>(s => s == "test.cub")), Times.Once());
 			mock.Verify(a => a.RunBatchFile(It.Is<string>(s => s == "test.cub")), Times.Never());
-			mock.Verify(a => a.SendMessage(It.Is<IFileInfo[]>(f => f.Count() == 1)), Times.Once());
+			// mock.Verify(a => a.SendMessage(It.Is<IFileInfo[]>(f => f.Count() == 1)), Times.Once());
 			Assert.AreEqual(1, result);
 
 		}
@@ -90,7 +90,7 @@ namespace LatestFileReporter.Tests
 			mock.Verify(a => a.DoesLogFileIndicateCommonError(It.Is<string>(s => s.Contains("bad"))), Times.Never()); 
 			mock.Verify(a => a.CopySourceFile(It.Is<string>(s => s.Contains("bad"))), Times.Never());
 			mock.Verify(a => a.RunBatchFile(It.Is<string>(s => s.Contains("bad"))), Times.Never());
-			mock.Verify(a => a.SendMessage(It.Is<IFileInfo[]>(f => f.Count() == 4)), Times.Once());
+			// mock.Verify(a => a.SendMessage(It.Is<IFileInfo[]>(f => f.Count() == 4)), Times.Once());
 			Assert.AreEqual(-1, result);
 
 		}
@@ -109,7 +109,7 @@ namespace LatestFileReporter.Tests
 			mock.Verify(a => a.DoesLogFileIndicateCommonError(It.Is<string>(s => s == "test.cub")), Times.Never()); 
 			mock.Verify(a => a.CopySourceFile(It.Is<string>(s => s == "test.cub")), Times.Never());
 			mock.Verify(a => a.RunBatchFile(It.Is<string>(s => s == "test.cub")), Times.Never());
-			mock.Verify(a => a.SendMessage(It.Is<IFileInfo[]>(f => !f.Any())), Times.Once());
+			// mock.Verify(a => a.SendMessage(It.Is<IFileInfo[]>(f => !f.Any())), Times.Once());
 			Assert.AreEqual(0, result);
 		}
 
@@ -127,7 +127,7 @@ namespace LatestFileReporter.Tests
 			mock.Verify(a => a.CopySourceFile(It.Is<string>(s => s == "test.cub")), Times.Once());
 			mock.Verify(a => a.RunBatchFile(It.Is<string>(s => s == "test.cub")), Times.Once());
 			mock.Verify(a => a.DoesLogFileIndicateCommonError(It.Is<string>(s => s == "test.cub")), Times.Once()); 
-			mock.Verify(a => a.SendMessage(It.Is<IFileInfo[]>(f => f.Count() == 1)), Times.Once());
+			//mock.Verify(a => a.SendMessage(It.Is<IFileInfo[]>(f => f.Count() == 1)), Times.Once());
 			Assert.AreEqual(1, result);
 		}
 

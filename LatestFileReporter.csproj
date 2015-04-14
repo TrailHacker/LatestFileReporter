@@ -89,6 +89,11 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AppConfig.cs" />
+    <Compile Include="Emailer.cs" />
+    <Compile Include="FileExtractor.cs" />
+    <Compile Include="IEmailer.cs" />
+    <Compile Include="IFileExtractor.cs" />
+    <Compile Include="LoggingDefinition.cs" />
     <Compile Include="ProgramDefinition.cs" />
     <Compile Include="FileWrapper.cs" />
     <Compile Include="Interfaces\IProgramDefinition.cs" />

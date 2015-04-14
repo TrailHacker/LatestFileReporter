@@ -1,11 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Configuration;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
-using System.Net;
-using System.Net.Mail;
 using System.Text;
 using LatestFileReporter.Interfaces;
 
@@ -18,15 +13,6 @@ namespace LatestFileReporter
 		public ProgramDefinition(IProgramSettings settings)
 		{
 			Settings = settings;
-		}
-
-		public IEnumerable<IFileInfo> GetFilesToProcess()
-		{
-			var ignoreList = Settings.IgnoreFileList;
-			var directory = new DirectoryInfo(Settings.SourceFileDirectoryPath);
-			return from fileInfo in directory.GetFiles("*" + Settings.SearchFileExtension)
-				where !ignoreList.Contains(fileInfo.Name, StringComparer.InvariantCultureIgnoreCase)
-				select (IFileInfo) new FileWrapper(fileInfo);
 		}
 
 		public bool DoesLogFileIndicateCommonError(string fileName)
@@ -59,68 +45,6 @@ namespace LatestFileReporter
 				throw new FileNotFoundException("Unable to find batch file", path);
 
 			return ExecuteCommand(path) == 0;
-		}
-
-		public void SendMessage(IFileInfo[] files)
-		{
-			using (var message = CreateMailMessage(files))
-			using (var client = CreateSmtpClient())
-				client.Send(message);
-		}
-
-
-		private MailMessage CreateMailMessage(IFileInfo[] outdatedFiles)
-		{
-			var message = new MailMessage(string.Join(";", Settings.ToEmailAddresses), Settings.FromEmailAddress);
-			if (outdatedFiles.Any())
-			{
-				var friendlyMessage = string.Format("There are {0} files that were not copied: ", outdatedFiles.Count());
-				var body = new StringBuilder();
-				Console.WriteLine(friendlyMessage);
-				body.Append(friendlyMessage);
-				foreach (var file in outdatedFiles)
-				{
-					Console.WriteLine("\t" + file);
-					body.Append("\t" + file.Name);
-				}
-				message.Subject = "Wake Up!";
-				message.Body = body.ToString();
-			}
-			else
-			{
-				Console.WriteLine("All files are up to date!");
-				message.Subject = "Keep sleeping... All is Good.";
-				message.Body = "All files are up to date!";
-			}
-
-			return message;
-		}
-
-		private static SmtpClient CreateSmtpClient()
-		{
-			var smtpUserName = Environment.GetEnvironmentVariable("SmtpUserName", EnvironmentVariableTarget.User);
-			if (string.IsNullOrEmpty(smtpUserName))
-				throw new ApplicationException("Expecting a User environment variable named 'SmtpUserName'");
-
-			var smtpPassword = Environment.GetEnvironmentVariable("SmtpPassword", EnvironmentVariableTarget.User);
-			if (string.IsNullOrEmpty(smtpPassword))
-				throw new ApplicationException("Expecting a User environment variable named 'SmtpPassword'");
-
-			SmtpDeliveryMethod deliveryMethod;
-			var appSettings = ConfigurationManager.AppSettings;
-			if (!Enum.TryParse(appSettings["smtpDeliveryMethod"] ?? string.Empty, true, out deliveryMethod))
-				deliveryMethod = SmtpDeliveryMethod.Network;
-
-			var client = new SmtpClient
-			{
-				Port = Convert.ToInt32(appSettings["smtpPort"]),
-				Host = appSettings["smtpHost"],
-				EnableSsl = Convert.ToBoolean(appSettings["smtpEnableSsl"]),
-				UseDefaultCredentials = Convert.ToBoolean(appSettings["smtpUseDefaultCreds"]),
-				Credentials = new NetworkCredential(smtpUserName, smtpPassword),
-				DeliveryMethod = deliveryMethod
-			};
-			return client;
 		}
 
 		private static string BuildPath(string directory, string fileName, string extension)
@@ -203,4 +127,5 @@ namespace LatestFileReporter
 		}
 
 	}
+
 }

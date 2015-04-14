@@ -12,6 +12,7 @@ namespace LatestFileReporter
 	{
 		private readonly ILog _logger;
 
+		public IFileExtractor Extractor { get; set; }
 		public IProgramSettings Settings { get; set; }
 		public IProgramDefinition Definition { get; set; }
 
@@ -23,6 +24,7 @@ namespace LatestFileReporter
 			var program = new Program
 			{
 				Settings = settings,
+				Extractor = new FileExtractor(settings),
 				Definition = new ProgramDefinition(settings)
 			};
 			return program.Run();
@@ -56,7 +58,7 @@ namespace LatestFileReporter
 			{
 				_logger.Info("Beginning the file checker logic");
 
-				var filesToProcess = Definition.GetFilesToProcess().ToArray();
+				var filesToProcess = Extractor.GetFilesToProcess().ToArray();
 				var outdatedFiles = GetOutdatedFiles(filesToProcess);
 				var emptyFiles = GetEmptyFiles(filesToProcess);
 				if (emptyFiles.Any())
@@ -76,7 +78,7 @@ namespace LatestFileReporter
 					attempt++;
 
 					_logger.Info("Updating list of files to analyze");
-					filesToProcess = Definition.GetFilesToProcess().ToArray();
+					filesToProcess = Extractor.GetFilesToProcess().ToArray();
 					outdatedFiles = GetOutdatedFiles(filesToProcess);
 					keepGoing = KeepGoing(attempt);
 
@@ -203,7 +205,8 @@ namespace LatestFileReporter
 
 		private void SendMessage(IFileInfo[] files)
 		{
-			Definition.SendMessage(files);
+			var emailer = new Emailer(Settings, files);
+			emailer.SendMessage();
 		}
 
 
