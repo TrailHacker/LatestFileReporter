@@ -1,7 +1,9 @@
 ﻿using System;
+using System.IO;
 using System.Linq;
 using LatestFileReporter.Interfaces;
 using log4net;
+using log4net.Config;
 
 namespace LatestFileReporter
 {
@@ -40,6 +42,7 @@ namespace LatestFileReporter
 
 		public Program()
 		{
+			XmlConfigurator.ConfigureAndWatch(new FileInfo("logger.config"));
 			_logger = LogManager.GetLogger(typeof(Program));
 		}
 
@@ -50,6 +53,7 @@ namespace LatestFileReporter
 
 			try
 			{
+				// add ignore list 
 				var files = GetOutdatedFiles();
 				var attempt = 0;
 				var keepGoing = true;
@@ -57,16 +61,7 @@ namespace LatestFileReporter
 				while (files.Any() && keepGoing)
 				{
 					foreach (var file in files)
-					{
-						if (!DoesLogFileIndicateCommonError(file.Name))
-							continue;
-
-						if (CopySourceFile(file.Name))
-							continue;
-
-						RunBatchFile(file.Name);
-
-					}
+						ProcessFile(file);
 
 					attempt++;
 					files = GetOutdatedFiles();
@@ -98,6 +93,26 @@ namespace LatestFileReporter
 
 		}
 
+		private void ProcessFile(IFileInfo file)
+		{
+			if (!Definition.DoesLogFileIndicateCommonError(file.Name))
+			{
+				_logger.InfoFormat("File does not have common error: {0}", file.Name);
+				return;
+			}
+
+			if (Definition.CopySourceFile(file.Name))
+			{
+				_logger.InfoFormat("Copied file from source directory: {0}", file.Name);
+				return;
+			}
+
+			_logger.InfoFormat("Starting batch file for '{0}'...", file.Name);
+			var result = Definition.RunBatchFile(file.Name);
+			_logger.InfoFormat("Finished batch file! (Result = {0})", result);
+
+		}
+
 		#region Private Methods
 
 		private IFileInfo[] GetOutdatedFiles()
@@ -112,7 +127,7 @@ namespace LatestFileReporter
 					_logger.Info("All files are up to date!");
 					break;
 				case 1:
-					_logger.Info("There is 1 file out of date.");
+					_logger.Warn("There is 1 file out of date.");
 					break;
 				default:
 					_logger.WarnFormat("There are {0} files that didn't process today.", files.Count());
@@ -123,33 +138,6 @@ namespace LatestFileReporter
 				throw new TooManyFailingCubesException(files);
 
 			return files;
-		}
-
-		private bool DoesLogFileIndicateCommonError(string filePath)
-		{
-			if (Definition.DoesLogFileIndicateCommonError(filePath))
-				return true;
-
-			_logger.Info("Log file does NOT report a common error. Reading next file...");
-			return false;
-		}
-
-		private bool CopySourceFile(string fileName)
-		{
-			if (!Definition.CopySourceFile(fileName))
-				return false;
-
-			_logger.InfoFormat("Copied file from source directory: {0}", fileName);
-			return true;
-		}
-
-		private bool RunBatchFile(string fileName)
-		{
-			_logger.InfoFormat("Starting batch file to rebuild [{0}]", fileName);
-
-			var result = Definition.RunBatchFile(fileName);
-			_logger.Info("Finished processing batch file");
-			return result;
 		}
 
 		private bool KeepGoing(int attempts)

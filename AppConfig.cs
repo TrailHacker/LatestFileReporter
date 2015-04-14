@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Configuration;
 using LatestFileReporter.Interfaces;
 
@@ -21,10 +22,13 @@ namespace LatestFileReporter
 			LogFileDirectoryPath = appSettings["logsDirectory"];
 			LogFileExtension = appSettings["logFileExtension"] ?? ".log";
 			AttemptedRunCounter = Convert.ToInt32(appSettings["BatchRunnerAttempts"] ?? "3");
+
+			var ignoreFileList = appSettings["ignoreFileList"] ?? string.Empty;
+			IgnoreFileList = ignoreFileList.Split(';');
 		}
 
 		public string FromEmailAddress { get; private set; }
-		public string[] ToEmailAddresses { get; private set; }
+		public IEnumerable<string> ToEmailAddresses { get; private set; }
 
 		public string DestinationFileDirectoryPath { get; private set; }
 		public string SourceFileDirectoryPath { get; private set; }
@@ -34,5 +38,6 @@ namespace LatestFileReporter
 		public string LogFileExtension { get; private set; }
 		public int MaxCountOfOutdatedFilesBeforeFailing { get; private set; }
 		public int AttemptedRunCounter { get; private set; }
+		public IEnumerable<string> IgnoreFileList { get; private set; }
 	}
 }

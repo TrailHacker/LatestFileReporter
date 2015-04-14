@@ -21,9 +21,12 @@ namespace LatestFileReporter
 
 		public IQueryable<IFileInfo> GetFilesAsQueryable()
 		{
+			var ignoreList = Settings.IgnoreFileList;
 			var directory = new DirectoryInfo(Settings.SourceFileDirectoryPath);
 			return (from fileInfo in directory.GetFileSystemInfos("*" + Settings.SearchFileExtension)
-				select (IFileInfo) new FileWrapper(fileInfo)).AsQueryable();
+				where !ignoreList.Contains(fileInfo.Name, StringComparer.InvariantCultureIgnoreCase)
+				select (IFileInfo) new FileWrapper(fileInfo)
+				).AsQueryable();
 		}
 
 		public bool DoesLogFileIndicateCommonError(string fileName)
