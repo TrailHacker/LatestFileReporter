@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using LatestFileReporter.Interfaces;
@@ -53,25 +54,27 @@ namespace LatestFileReporter
 
 			try
 			{
-				// add ignore list 
-				var files = GetOutdatedFiles();
+				var filesToAnalyze = Definition.GetFilesAsQueryable().ToArray();
+				var outdatedFiles = GetOutdatedFiles(filesToAnalyze);
+				var emptyFiles = GetEmptyFiles(filesToAnalyze);
+
 				var attempt = 0;
 				var keepGoing = true;
 
-				while (files.Any() && keepGoing)
+				while (outdatedFiles.Any() && keepGoing)
 				{
-					foreach (var file in files)
+					foreach (var file in outdatedFiles)
 						ProcessFile(file);
 
 					attempt++;
-					files = GetOutdatedFiles();
+					outdatedFiles = GetOutdatedFiles(filesToAnalyze);
 					keepGoing = KeepGoing(attempt);
 
 				}
 
 				_logger.Info("Sending email!");
-				SendMessage(files);
-				result = files.Count();
+				SendMessage(outdatedFiles);
+				result = outdatedFiles.Count();
 
 			}
 			catch (TooManyFailingCubesException majorOops)
@@ -115,9 +118,9 @@ namespace LatestFileReporter
 
 		#region Private Methods
 
-		private IFileInfo[] GetOutdatedFiles()
+		private IFileInfo[] GetOutdatedFiles(IEnumerable<IFileInfo> filesToAnalyze)
 		{
-			var files = (from file in Definition.GetFilesAsQueryable()
+			var files = (from file in filesToAnalyze
 				where !HasProcessedToday(file)
 				select file).ToArray();
 
@@ -138,6 +141,43 @@ namespace LatestFileReporter
 				throw new TooManyFailingCubesException(files);
 
 			return files;
+		}
+
+		private IFileInfo[] GetEmptyFiles(IEnumerable<IFileInfo> filesToAnalyze)
+		{
+			var files = (from file in filesToAnalyze
+				where file.FileSize <= GetEmptyFileThreshold(file)
+				select file).ToArray();
+
+			switch (files.Length)
+			{
+				case 0:
+					_logger.Info("All files are up to date!");
+					break;
+				case 1:
+					_logger.Warn("There is 1 file out of date.");
+					break;
+				default:
+					_logger.WarnFormat("There are {0} files that didn't process today.", files.Count());
+					break;
+			}
+
+			if (files.Length > Settings.MaxCountOfOutdatedFilesBeforeFailing)
+				throw new TooManyFailingCubesException(files);
+
+			return files;
+		}
+
+		private long GetEmptyFileThreshold(IFileInfo file)
+		{
+			var path = Settings.SourceFileDirectoryPath;
+			var extension = Settings.FileSizeExtensionToCompare;
+			if (string.IsNullOrEmpty(path) || string.IsNullOrEmpty(extension))
+				return 0L;
+
+			var filePath = Path.Combine(path, file.Name, extension);
+			var sourceFile = new FileInfo(filePath);
+			return sourceFile.Length;
 		}
 
 		private bool KeepGoing(int attempts)

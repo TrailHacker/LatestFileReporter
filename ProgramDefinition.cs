@@ -23,7 +23,7 @@ namespace LatestFileReporter
 		{
 			var ignoreList = Settings.IgnoreFileList;
 			var directory = new DirectoryInfo(Settings.SourceFileDirectoryPath);
-			return (from fileInfo in directory.GetFileSystemInfos("*" + Settings.SearchFileExtension)
+			return (from fileInfo in directory.GetFiles("*" + Settings.SearchFileExtension)
 				where !ignoreList.Contains(fileInfo.Name, StringComparer.InvariantCultureIgnoreCase)
 				select (IFileInfo) new FileWrapper(fileInfo)
 				).AsQueryable();

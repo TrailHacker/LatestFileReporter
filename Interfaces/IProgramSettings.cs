@@ -15,5 +15,7 @@ namespace LatestFileReporter.Interfaces
 		IEnumerable<string> IgnoreFileList { get; }
 		int MaxCountOfOutdatedFilesBeforeFailing { get; }
 		int AttemptedRunCounter { get; }
+
+		string FileSizeExtensionToCompare { get; }
 	}
 }

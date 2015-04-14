@@ -6,5 +6,6 @@ namespace LatestFileReporter.Interfaces
 	{
 		DateTime LastWriteTime { get; }
 		string Name { get; }
+		long FileSize { get; }
 	}
 }

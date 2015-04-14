@@ -6,13 +6,13 @@ namespace LatestFileReporter
 {
 	public class FileWrapper : IFileInfo
 	{
-		private readonly FileSystemInfo _file;
+		private readonly FileInfo _file;
 
 		#region Ctor
 
 		public FileWrapper(string path) : this(new FileInfo(path)) {}
 
-		public FileWrapper(FileSystemInfo file)
+		public FileWrapper(FileInfo file)
 		{
 			if (file == null)
 				throw new ArgumentNullException("file");
@@ -29,6 +29,11 @@ namespace LatestFileReporter
 		public DateTime LastWriteTime
 		{
 			get { return _file.LastWriteTime; }
+		}
+
+		public long FileSize
+		{
+			get { return _file.Length; }
 		}
 
 	}

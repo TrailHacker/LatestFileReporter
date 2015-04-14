@@ -25,6 +25,7 @@ namespace LatestFileReporter
 
 			var ignoreFileList = appSettings["ignoreFileList"] ?? string.Empty;
 			IgnoreFileList = ignoreFileList.Split(';');
+			FileSizeExtensionToCompare = appSettings["fileExtensionToCompareSize"];
 		}
 
 		public string FromEmailAddress { get; private set; }
@@ -39,5 +40,6 @@ namespace LatestFileReporter
 		public int MaxCountOfOutdatedFilesBeforeFailing { get; private set; }
 		public int AttemptedRunCounter { get; private set; }
 		public IEnumerable<string> IgnoreFileList { get; private set; }
+		public string FileSizeExtensionToCompare { get; private set; }
 	}
 }
