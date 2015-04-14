@@ -54,21 +54,30 @@ namespace LatestFileReporter
 
 			try
 			{
-				var filesToAnalyze = Definition.GetFilesToProcess().ToArray();
-				var outdatedFiles = GetOutdatedFiles(filesToAnalyze);
-				var emptyFiles = GetEmptyFiles(filesToAnalyze);
+				_logger.Info("Beginning the file checker logic");
+
+				var filesToProcess = Definition.GetFilesToProcess().ToArray();
+				var outdatedFiles = GetOutdatedFiles(filesToProcess);
+				var emptyFiles = GetEmptyFiles(filesToProcess);
+				if (emptyFiles.Any())
+					_logger.ErrorFormat("{0} file(s) are empty", emptyFiles.Count());
 
 				var attempt = 0;
 				var keepGoing = true;
 
 				while (outdatedFiles.Any() && keepGoing)
 				{
+					_logger.WarnFormat("There are {0} files to process", outdatedFiles.Count());
+					_logger.InfoFormat("Attempt #{0}", attempt + 1);
+
 					foreach (var file in outdatedFiles)
 						ProcessFile(file);
 
 					attempt++;
-					filesToAnalyze = Definition.GetFilesToProcess().ToArray();
-					outdatedFiles = GetOutdatedFiles(filesToAnalyze);
+
+					_logger.Info("Updating list of files to analyze");
+					filesToProcess = Definition.GetFilesToProcess().ToArray();
+					outdatedFiles = GetOutdatedFiles(filesToProcess);
 					keepGoing = KeepGoing(attempt);
 
 				}
