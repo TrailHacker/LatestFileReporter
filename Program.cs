@@ -25,7 +25,7 @@ namespace LatestFileReporter
 			{
 				Settings = settings,
 				Extractor = new FileExtractor(settings),
-				Definition = new ProgramDefinition(settings)
+				Definition = new LoggingDefinition()
 			};
 			return program.Run();
 		}
@@ -211,5 +211,7 @@ namespace LatestFileReporter
 
 
 		#endregion
+
+
 	}
 }

@@ -5,6 +5,10 @@ using System.Net;
 using System.Net.Mail;
 using System.Text;
 using LatestFileReporter.Interfaces;
+using log4net;
+using log4net.Appender;
+using log4net.Core;
+using log4net.Repository.Hierarchy;
 
 namespace LatestFileReporter
 {
@@ -25,11 +29,6 @@ namespace LatestFileReporter
 
 		}
 
-		public IProgramSettings Settings
-		{
-			get { return _settings; }
-		}
-
 		public void SendMessage()
 		{
 			using (var message = CreateMailMessage(_files))
@@ -39,7 +38,13 @@ namespace LatestFileReporter
 
 		private MailMessage CreateMailMessage(IFileInfo[] outdatedFiles)
 		{
-			var message = new MailMessage(string.Join(";", Settings.ToEmailAddresses), Settings.FromEmailAddress);
+			var rootAppender = ((Hierarchy) LogManager.GetRepository())
+				.Root.Appenders.OfType<MemoryAppender>()
+				.FirstOrDefault();
+
+			var events = rootAppender != null ? rootAppender.GetEvents() : new LoggingEvent[0];
+
+			var message = new MailMessage(string.Join(";", _settings.ToEmailAddresses), _settings.FromEmailAddress);
 			if (outdatedFiles.Any())
 			{
 				var friendlyMessage = string.Format("There are {0} files that were not copied: ", outdatedFiles.Count());
@@ -60,6 +65,12 @@ namespace LatestFileReporter
 				message.Subject = "Keep sleeping... All is Good.";
 				message.Body = "All files are up to date!";
 			}
+
+			message.Body += "\n--------";
+/*
+			foreach(var logEvent in events)
+				message.Body += 
+*/
 
 			return message;
 		}
